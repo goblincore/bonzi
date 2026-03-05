@@ -124,7 +124,6 @@ async function loadAgentFromPath(agentPath: string, initialAnimation?: string) {
     await loadAcsFile(new Uint8Array(buffer), initialAnimation);
   } catch (err) {
     console.error('Failed to load agent:', err);
-    alert('Failed to load agent: ' + err);
   }
 }
 
@@ -140,7 +139,6 @@ fileInput.addEventListener('change', async (e) => {
     loadAcsFile(new Uint8Array(buffer));
   } catch (err) {
     console.error('Failed to load file:', err);
-    alert('Failed to load ACS file: ' + err);
   }
 });
 

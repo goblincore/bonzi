@@ -5,8 +5,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin } from 'vite';
 
+// Valid ACS files start with 0xC3ABCDAB. OLE Compound Documents (0xD0CF11E0)
+// are a different container format that some .acs files use — skip those.
+const ACS_MAGIC = Buffer.from([0xc3, 0xab, 0xcd, 0xab]);
+
+function isValidAcsFile(filepath: string): boolean {
+  try {
+    const fd = fs.openSync(filepath, 'r');
+    const buf = Buffer.alloc(4);
+    fs.readSync(fd, buf, 0, 4, 0);
+    fs.closeSync(fd);
+    return buf.equals(ACS_MAGIC);
+  } catch {
+    return false;
+  }
+}
+
 // Vite plugin: serves GET /api/agents with list of .acs files in public/agents/
 // So adding a new agent is just: drop .acs file into public/agents/ and refresh.
+// Filters out non-ACS files (OLE containers, corrupted files, etc.) by checking magic bytes.
 function agentListPlugin(): Plugin {
   return {
     name: 'agent-list',
@@ -16,6 +33,7 @@ function agentListPlugin(): Plugin {
         try {
           const files = fs.readdirSync(agentsDir)
             .filter(f => f.toLowerCase().endsWith('.acs'))
+            .filter(f => isValidAcsFile(path.join(agentsDir, f)))
             .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify(files));
@@ -32,6 +50,7 @@ function agentListPlugin(): Plugin {
       try {
         const files = fs.readdirSync(agentsDir)
           .filter(f => f.toLowerCase().endsWith('.acs'))
+          .filter(f => isValidAcsFile(path.join(agentsDir, f)))
           .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         fs.mkdirSync(outDir, { recursive: true });
         fs.writeFileSync(path.join(outDir, 'agents'), JSON.stringify(files));
