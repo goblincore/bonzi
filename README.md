@@ -1,6 +1,9 @@
 # bonzi
+<img width="881" height="744" alt="Screenshot 2026-03-05 at 8 24 54 AM" src="https://github.com/user-attachments/assets/11d82c7e-eaad-480c-aabc-d0dce6285d6c" />
 
 Rust tools for Microsoft Agent character files (.acs) and SAPI4 text-to-speech.
+
+<img width="779" height="215" alt="Screenshot 2026-03-05 at 8 24 57 AM" src="https://github.com/user-attachments/assets/83474fdd-1ec8-4e44-afb5-7bc19103abdc" />
 
 ## Structure
 
