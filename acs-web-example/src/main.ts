@@ -38,6 +38,7 @@ let animationTimer: number | null = null;
 let shouldLoop = false;
 let volume = 0.5;
 let branchingEnabled = true; // Probabilistic branching enabled by default
+let loadGeneration = 0; // Guards against concurrent async loads
 
 // Audio cache - preload sounds as AudioBuffers
 let audioContext: AudioContext | null = null;
@@ -213,10 +214,14 @@ async function loadFromUrl() {
 loadFromUrl();
 
 async function loadAcsFile(data: Uint8Array, initialAnimation?: string) {
+  // Bump generation to invalidate any in-flight async work from previous loads
+  const thisGeneration = ++loadGeneration;
+
   // Clean up previous
+  stopAnimation();
   if (acsFile) {
-    stopAnimation();
     acsFile.free();
+    acsFile = null; // Null immediately so a failed constructor doesn't leave a freed pointer
   }
   soundCache.clear();
   animationInfoCache.clear();
@@ -289,7 +294,10 @@ async function loadAcsFile(data: Uint8Array, initialAnimation?: string) {
   infoDiv.classList.remove('hidden');
 
   // Preload all sounds
-  await preloadSounds();
+  await preloadSounds(thisGeneration);
+
+  // After async preload, check if a newer load superseded us
+  if (thisGeneration !== loadGeneration) return;
 
   // Determine which animation to play
   let animToPlay: string | null = null;
@@ -315,7 +323,7 @@ async function loadAcsFile(data: Uint8Array, initialAnimation?: string) {
   }
 }
 
-async function preloadSounds() {
+async function preloadSounds(generation: number) {
   if (!acsFile) return;
 
   // Initialize AudioContext on first use (requires user interaction)
@@ -328,10 +336,14 @@ async function preloadSounds() {
 
   const soundCount = acsFile.soundCount();
   for (let i = 0; i < soundCount; i++) {
+    // Bail if a newer load has started (acsFile may have been freed)
+    if (generation !== loadGeneration) return;
     try {
       // Use getSoundAsArrayBuffer - no manual copy needed
       const arrayBuffer = acsFile.getSoundAsArrayBuffer(i);
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      // Check again after async decode
+      if (generation !== loadGeneration) return;
       soundCache.set(i, audioBuffer);
     } catch (err) {
       console.warn(`Failed to load sound ${i}:`, err);
@@ -384,25 +396,29 @@ function stopAnimation() {
     clearTimeout(animationTimer);
     animationTimer = null;
   }
-  currentAnimation = null;
+  if (currentAnimation) {
+    currentAnimation.free();
+    currentAnimation = null;
+  }
   currentFrame = 0;
 }
 
 function renderCurrentFrame() {
   if (!acsFile || !currentAnimation) return;
 
+  let imageData: import('acs-web').ImageData | null = null;
   try {
-    const imageData = acsFile.renderFrame(currentAnimation.name, currentFrame);
+    imageData = acsFile.renderFrame(currentAnimation.name, currentFrame);
     const clampedArray = new Uint8ClampedArray(imageData.data);
     const canvasImageData = new ImageData(clampedArray, imageData.width, imageData.height);
 
     // Clear canvas before drawing to prevent old frame bleed-through
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.putImageData(canvasImageData, 0, 0);
-
-    imageData.free();
   } catch (err) {
     console.error('Failed to render frame:', err);
+  } finally {
+    imageData?.free();
   }
 }
 
@@ -483,14 +499,23 @@ function scheduleNextFrame() {
     playSound(soundIndex);
   }
 
-  animationTimer = window.setTimeout(() => {
-    const nextFrame = selectNextFrame();
+  // Capture reference for the timeout closure — if stopAnimation() is called
+  // between now and when the timeout fires, currentAnimation will be freed/nulled
+  const anim = currentAnimation;
 
-    if (nextFrame >= currentAnimation!.frameCount) {
+  animationTimer = window.setTimeout(() => {
+    // Guard: if animation was stopped or agent reloaded while timeout was pending
+    if (!currentAnimation || currentAnimation !== anim || !acsFile) return;
+
+    const nextFrame = selectNextFrame();
+    const frameCount = currentAnimation.frameCount;
+
+    // Validate frame index (bad branch data could produce out-of-range values)
+    if (nextFrame < 0 || nextFrame >= frameCount) {
       // Animation finished - determine next action based on transition type
-      const currentAnimName = currentAnimation!.name;
-      const transitionType = currentAnimation!.transitionType;
-      const returnAnim = currentAnimation!.returnAnimation;
+      const currentAnimName = currentAnimation.name;
+      const transitionType = currentAnimation.transitionType;
+      const returnAnim = currentAnimation.returnAnimation;
 
       if (transitionType.usesReturnAnimation && returnAnim) {
         // Type 0: Use the specified return animation
