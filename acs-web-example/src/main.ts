@@ -1,10 +1,27 @@
 import init, { AcsFile, AnimationData, AnimationInfo } from 'acs-web';
+import { setCurrentAgent } from './tts';
 
 // Initialize WASM module
 await init();
 
 // DOM elements
 const agentSelect = document.getElementById('agent-select') as HTMLSelectElement;
+
+// ── Auto-discover ACS agent files ──
+// Fetches directory listing from Vite plugin (dev) or static manifest (prod).
+// To add agents: just drop .acs files into public/agents/ and refresh.
+try {
+  const res = await fetch('/api/agents');
+  const filenames: string[] = await res.json();
+  for (const filename of filenames) {
+    const opt = document.createElement('option');
+    opt.value = `agents/${filename}`;
+    opt.textContent = filename.replace(/\.acs$/i, '');
+    agentSelect.appendChild(opt);
+  }
+} catch (err) {
+  console.warn('Failed to load agent list:', err);
+}
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
 const animationSelect = document.getElementById('animation-select') as HTMLSelectElement;
 const loopToggle = document.getElementById('loop-toggle') as HTMLInputElement;
@@ -100,6 +117,9 @@ async function loadAgentFromPath(agentPath: string, initialAnimation?: string) {
     const buffer = await response.arrayBuffer();
     fileInput.value = ''; // Clear file input
     agentSelect.value = agentPath;
+    // Notify TTS panel of loaded agent
+    const agentFilename = agentPath.split('/').pop() || null;
+    setCurrentAgent(agentFilename);
     await loadAcsFile(new Uint8Array(buffer), initialAnimation);
   } catch (err) {
     console.error('Failed to load agent:', err);
@@ -115,6 +135,7 @@ fileInput.addEventListener('change', async (e) => {
   try {
     const buffer = await file.arrayBuffer();
     agentSelect.value = ''; // Clear agent dropdown
+    setCurrentAgent(file.name);
     loadAcsFile(new Uint8Array(buffer));
   } catch (err) {
     console.error('Failed to load file:', err);

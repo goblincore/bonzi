@@ -26,9 +26,21 @@ class TTSHandler(http.server.BaseHTTPRequestHandler):
         # Log to stderr for container visibility
         print(f"[HTTP] {args[0]}", flush=True)
 
+    def _send_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests."""
+        self.send_response(200)
+        self._send_cors_headers()
+        self.end_headers()
+
     def send_json(self, data, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self._send_cors_headers()
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
@@ -36,6 +48,7 @@ class TTSHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "audio/wav")
         self.send_header("Content-Length", str(len(audio_data)))
+        self._send_cors_headers()
         self.end_headers()
         self.wfile.write(audio_data)
 
