@@ -5,6 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ACS Viewer</title>
     <style>
+      /* ── Theme variables ── */
+      :root {
+        --bg: #1a1a1a;
+        --fg: #fff;
+        --surface: #2a2a2a;
+        --border: #444;
+        --input-bg: #333;
+        --input-border: #555;
+        --muted: #888;
+        --muted2: #aaa;
+        --muted3: #666;
+        --notice-bg: #4a3a00;
+        --notice-border: #8a7000;
+        --notice-hover: #5a4a00;
+        --btn-bg: #4a6fa5;
+        --btn-hover: #5a7fb5;
+        --btn-active: #3a5f95;
+        --status-off: #555;
+      }
+      :root.light {
+        --bg: #f5f5f5;
+        --fg: #1a1a1a;
+        --surface: #fff;
+        --border: #ddd;
+        --input-bg: #fff;
+        --input-border: #ccc;
+        --muted: #666;
+        --muted2: #555;
+        --muted3: #999;
+        --notice-bg: #fff3cd;
+        --notice-border: #ffc107;
+        --notice-hover: #ffecb5;
+        --btn-bg: #3a7bd5;
+        --btn-hover: #4a8be5;
+        --btn-active: #2a6bc5;
+        --status-off: #ccc;
+      }
+
       * {
         box-sizing: border-box;
       }
@@ -13,11 +51,32 @@
         max-width: 800px;
         margin: 0 auto;
         padding: 20px;
-        background: #1a1a1a;
-        color: #fff;
+        background: var(--bg);
+        color: var(--fg);
+        transition: background 0.2s, color 0.2s;
       }
       h1 {
         margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .theme-toggle {
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 4px;
+        color: var(--fg);
+        cursor: pointer;
+        font-size: 18px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+      .theme-toggle:hover {
+        background: var(--border);
       }
       .controls {
         display: flex;
@@ -28,17 +87,17 @@
       }
       input[type="file"] {
         padding: 8px;
-        background: #333;
-        border: 1px solid #555;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
         border-radius: 4px;
-        color: #fff;
+        color: var(--fg);
       }
       select {
         padding: 8px 12px;
-        background: #333;
-        border: 1px solid #555;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
         border-radius: 4px;
-        color: #fff;
+        color: var(--fg);
         font-size: 14px;
       }
       select:disabled {
@@ -67,8 +126,8 @@
         cursor: pointer;
       }
       .canvas-container {
-        background: #2a2a2a;
-        border: 1px solid #444;
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 8px;
         padding: 20px;
         display: flex;
@@ -86,7 +145,8 @@
       .info {
         margin-top: 20px;
         padding: 15px;
-        background: #2a2a2a;
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 8px;
         font-size: 14px;
       }
@@ -97,8 +157,8 @@
         display: none;
       }
       .audio-notice {
-        background: #4a3a00;
-        border: 1px solid #8a7000;
+        background: var(--notice-bg);
+        border: 1px solid var(--notice-border);
         border-radius: 4px;
         padding: 8px 12px;
         margin-bottom: 20px;
@@ -109,7 +169,7 @@
         transition: background 0.2s;
       }
       .audio-notice:hover {
-        background: #5a4a00;
+        background: var(--notice-hover);
       }
       .audio-notice span {
         flex: 1;
@@ -119,8 +179,8 @@
       .tts-panel {
         margin-top: 20px;
         padding: 15px;
-        background: #2a2a2a;
-        border: 1px solid #444;
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 8px;
       }
       .tts-panel h2 {
@@ -135,7 +195,7 @@
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #555;
+        background: var(--status-off);
       }
       .tts-status.connected { background: #4caf50; }
       .tts-status.error { background: #f44336; }
@@ -150,25 +210,25 @@
       .tts-row label {
         min-width: 50px;
         font-size: 13px;
-        color: #aaa;
+        color: var(--muted2);
       }
       .tts-text-input {
         flex: 1;
         padding: 8px 10px;
-        background: #333;
-        border: 1px solid #555;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
         border-radius: 4px;
-        color: #fff;
+        color: var(--fg);
         font-size: 14px;
         font-family: inherit;
       }
       .tts-text-input:focus {
         outline: none;
-        border-color: #888;
+        border-color: var(--muted);
       }
       .tts-btn {
         padding: 8px 16px;
-        background: #4a6fa5;
+        background: var(--btn-bg);
         border: none;
         border-radius: 4px;
         color: #fff;
@@ -176,9 +236,9 @@
         font-size: 14px;
         white-space: nowrap;
       }
-      .tts-btn:hover { background: #5a7fb5; }
+      .tts-btn:hover { background: var(--btn-hover); }
       .tts-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-      .tts-btn:active { background: #3a5f95; }
+      .tts-btn:active { background: var(--btn-active); }
       .tts-sliders {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
@@ -192,7 +252,7 @@
       }
       .tts-slider-group label {
         font-size: 12px;
-        color: #aaa;
+        color: var(--muted2);
       }
       .tts-slider-group input[type="range"] {
         width: 100%;
@@ -200,7 +260,7 @@
       }
       .tts-slider-value {
         font-size: 11px;
-        color: #666;
+        color: var(--muted3);
         text-align: right;
       }
       .tts-voice-row {
@@ -223,29 +283,32 @@
       .tts-endpoint-input {
         flex: 1;
         padding: 6px 8px;
-        background: #333;
-        border: 1px solid #555;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
         border-radius: 4px;
-        color: #888;
+        color: var(--muted);
         font-size: 12px;
         font-family: monospace;
       }
       .tts-endpoint-input:focus {
         outline: none;
-        border-color: #888;
-        color: #fff;
+        border-color: var(--muted);
+        color: var(--fg);
       }
     </style>
   </head>
   <body>
-    <h1>ACS Viewer</h1>
+    <h1>
+      ACS Viewer
+      <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode">&#9788;</button>
+    </h1>
 
     <div class="controls">
       <select id="agent-select">
         <option value="">Select agent...</option>
         <!-- Auto-populated from public/agents/ at startup -->
       </select>
-      <span style="color: #888;">or</span>
+      <span style="color: var(--muted);">or</span>
       <input type="file" id="file-input" accept=".acs" />
       <select id="animation-select" disabled>
         <option value="">Select animation...</option>
@@ -292,17 +355,17 @@
       </h2>
 
       <div class="tts-endpoint-row">
-        <label style="font-size: 12px; color: #888;">API</label>
+        <label style="font-size: 12px; color: var(--muted);">API</label>
         <input type="text" class="tts-endpoint-input" id="tts-endpoint" value="http://localhost:8085" />
         <button class="tts-btn" id="tts-connect-btn" style="font-size: 12px; padding: 6px 10px;">Connect</button>
       </div>
 
       <div class="tts-voice-row">
-        <label style="min-width: 50px; font-size: 13px; color: #aaa;">Voice</label>
+        <label style="min-width: 50px; font-size: 13px; color: var(--muted2);">Voice</label>
         <select id="tts-voice-select" disabled>
           <option value="">Default (Sam)</option>
         </select>
-        <label style="font-size: 13px; color: #aaa;">
+        <label style="font-size: 13px; color: var(--muted2);">
           <input type="checkbox" id="tts-use-agent" /> <span id="tts-agent-label">Use loaded agent voice</span>
         </label>
       </div>
@@ -328,6 +391,26 @@
       </div>
     </div>
 
+    <script>
+      // Theme toggle — persists via localStorage
+      (function() {
+        var root = document.documentElement;
+        var btn = document.getElementById('theme-toggle');
+        var saved = localStorage.getItem('theme');
+        if (saved === 'light') root.classList.add('light');
+        function update() {
+          var isLight = root.classList.contains('light');
+          btn.textContent = isLight ? '\u263E' : '\u263C';
+          btn.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+        }
+        update();
+        btn.addEventListener('click', function() {
+          root.classList.toggle('light');
+          localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
+          update();
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
